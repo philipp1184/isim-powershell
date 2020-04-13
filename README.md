@@ -3,7 +3,6 @@ IBM Security Identity Manager Powershell Module
 
 ### Usage
 
-Connecting to WebService
 
 ```powershell
 Import-Module .\isim.psm1
