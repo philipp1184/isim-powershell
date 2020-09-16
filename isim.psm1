@@ -9,7 +9,6 @@
 
 
 
-
 function Copy-ISIMObjectNamespace {
     <#
     
@@ -278,80 +277,92 @@ function Connect-ISIM {
 	    [string]$ou_name
     )
 
-    $isimuid = $cred.GetNetworkCredential().username
-    $isimpwd = $cred.GetNetworkCredential().password
-
-	## Initialize SOAP WSDL URLs
-	$script:isim_url = $isim_url;
-	$script:isim_wsdl_session=$isim_url+"/itim/services/WSSessionService/WEB-INF/wsdl/WSSessionService.wsdl";
-	$script:isim_wsdl_person=$isim_url+"/itim/services/WSPersonServiceService/WEB-INF/wsdl/WSPersonService.wsdl";
-	$script:isim_wsdl_searchdata=$isim_url+"/itim/services/WSSearchDataServiceService/WEB-INF/wsdl/WSSearchDataService.wsdl";
-	$script:isim_wsdl_account=$isim_url+"/itim/services/WSAccountServiceService/WEB-INF/wsdl/WSAccountService.wsdl";
-	$script:isim_wsdl_container=$isim_url+"/itim/services/WSOrganizationalContainerServiceService/WEB-INF/wsdl/WSOrganizationalContainerService.wsdl";
-	$script:isim_wsdl_service=$isim_url+"/itim/services/WSServiceServiceService/WEB-INF/wsdl/WSServiceService.wsdl";
-	$script:isim_wsdl_password=$isim_url+"/itim/services/WSPasswordServiceService/WEB-INF/wsdl/WSPasswordService.wsdl";
-	$script:isim_wsdl_request=$isim_url+"/itim/services/WSRequestServiceService/WEB-INF/wsdl/WSRequestService.wsdl";
-    $script:isim_wsdl_role=$isim_url+"/itim/services/WSRoleServiceService/WEB-INF/wsdl/WSRoleService.wsdl";
-
-
-	$script:session_prx = New-WebServiceProxy -Uri $isim_wsdl_session # -Namespace "WebServiceProxy" -Class "Session"
-	$script:person_prx = New-WebServiceProxy -Uri $isim_wsdl_person # -Namespace "WebServiceProxy" -Class "Person"
-	$script:search_prx = New-WebServiceProxy -Uri $isim_wsdl_searchdata # -Namespace "WebServiceProxy" -Class "Search"
-	$script:account_prx = New-WebServiceProxy -Uri $isim_wsdl_account # -Namespace "WebServiceProxy" -Class "Account"
-	$script:container_prx = New-WebServiceProxy -Uri $isim_wsdl_container # -Namespace "WebServiceProxy" -Class "Container"
-	$script:service_prx = New-WebServiceProxy -Uri $isim_wsdl_service # -Namespace "WebServiceProxy" -Class "Service"
-	$script:password_prx = New-WebServiceProxy -Uri $isim_wsdl_password # -Namespace "WebServiceProxy" -Class "Password"
-	$script:request_prx = New-WebServiceProxy -Uri $isim_wsdl_request # -Namespace "WebServiceProxy" -Class "Request"
-    $script:role_prx = New-WebServiceProxy -Uri $isim_wsdl_role # -Namespace "WebServiceProxy" -Class "Role"
-
-
-	$script:session_ns = $script:session_prx.GetType().Namespace
-	$script:person_ns = $script:person_prx.GetType().Namespace
-	$script:search_ns = $script:search_prx.GetType().Namespace
-	$script:account_ns = $script:account_prx.GetType().Namespace
-	$script:container_ns = $script:container_prx.GetType().Namespace
-	$script:service_ns = $script:service_prx.GetType().Namespace
-	$script:password_ns = $script:password_prx.GetType().Namespace
-	$script:request_ns = $script:request_prx.GetType().Namespace
-    $script:role_ns = $script:role_prx.GetType().Namespace
-
-
-	# Login
-	$script:session = $script:session_prx.login($isimuid,$isimpwd)
-
-    if($script:session -eq $null) {
-        Write-Error "Could not Login to WebService" -ErrorAction Stop
+    Begin {
+        $ErrorActionPreference = 'Stop'
     }
+
+    Process {
+        $isimuid = $cred.GetNetworkCredential().username
+        $isimpwd = $cred.GetNetworkCredential().password
+
+	    ## Initialize SOAP WSDL URLs
+	    $script:isim_url = $isim_url;
+	    $script:isim_wsdl_session=$isim_url+"/itim/services/WSSessionService/WEB-INF/wsdl/WSSessionService.wsdl";
+	    $script:isim_wsdl_person=$isim_url+"/itim/services/WSPersonServiceService/WEB-INF/wsdl/WSPersonService.wsdl";
+	    $script:isim_wsdl_searchdata=$isim_url+"/itim/services/WSSearchDataServiceService/WEB-INF/wsdl/WSSearchDataService.wsdl";
+	    $script:isim_wsdl_account=$isim_url+"/itim/services/WSAccountServiceService/WEB-INF/wsdl/WSAccountService.wsdl";
+	    $script:isim_wsdl_container=$isim_url+"/itim/services/WSOrganizationalContainerServiceService/WEB-INF/wsdl/WSOrganizationalContainerService.wsdl";
+	    $script:isim_wsdl_service=$isim_url+"/itim/services/WSServiceServiceService/WEB-INF/wsdl/WSServiceService.wsdl";
+	    $script:isim_wsdl_password=$isim_url+"/itim/services/WSPasswordServiceService/WEB-INF/wsdl/WSPasswordService.wsdl";
+	    $script:isim_wsdl_request=$isim_url+"/itim/services/WSRequestServiceService/WEB-INF/wsdl/WSRequestService.wsdl";
+        $script:isim_wsdl_role=$isim_url+"/itim/services/WSRoleServiceService/WEB-INF/wsdl/WSRoleService.wsdl";
+
+
+        Try {
+	    $script:session_prx = New-WebServiceProxy -Uri $isim_wsdl_session -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Session"
+	    $script:person_prx = New-WebServiceProxy -Uri $isim_wsdl_person  -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Person"
+	    $script:search_prx = New-WebServiceProxy -Uri $isim_wsdl_searchdata -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Search"
+	    $script:account_prx = New-WebServiceProxy -Uri $isim_wsdl_account -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Account"
+	    $script:container_prx = New-WebServiceProxy -Uri $isim_wsdl_container -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Container"
+	    $script:service_prx = New-WebServiceProxy -Uri $isim_wsdl_service -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Service"
+	    $script:password_prx = New-WebServiceProxy -Uri $isim_wsdl_password -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Password"
+	    $script:request_prx = New-WebServiceProxy -Uri $isim_wsdl_request -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Request"
+        $script:role_prx = New-WebServiceProxy -Uri $isim_wsdl_role -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Role"
+        }
+        Catch {
+            Write-Host -ForegroundColor Red "Could not load WSDL Information"
+        }
+
+
+	    $script:session_ns = $script:session_prx.GetType().Namespace
+	    $script:person_ns = $script:person_prx.GetType().Namespace
+	    $script:search_ns = $script:search_prx.GetType().Namespace
+	    $script:account_ns = $script:account_prx.GetType().Namespace
+	    $script:container_ns = $script:container_prx.GetType().Namespace
+	    $script:service_ns = $script:service_prx.GetType().Namespace
+	    $script:password_ns = $script:password_prx.GetType().Namespace
+	    $script:request_ns = $script:request_prx.GetType().Namespace
+        $script:role_ns = $script:role_prx.GetType().Namespace
+
+
+	    # Login
+	    $script:session = $script:session_prx.login($isimuid,$isimpwd)
+
+        if($script:session -eq $null) {
+            Write-Error "Could not Login to WebService" -ErrorAction Stop
+        }
     
-    $script:isim_version = $script:session_prx.getItimVersion()
-    $script:isim_fp = $script:session_prx.getItimFixpackLevel()
-    $script:ws_target_type = $script:session_prx.getWebServicesTargetType()
-    $script:ws_version = $script:session_prx.getWebServicesVersion()
+        $script:isim_version = $script:session_prx.getItimVersion()
+        $script:isim_fp = $script:session_prx.getItimFixpackLevel()
+        $script:ws_target_type = $script:session_prx.getWebServicesTargetType()
+        $script:ws_version = $script:session_prx.getWebServicesVersion()
 
-    Write-Host "Successfully connected to ISIM SOAP Webservice" -ForegroundColor green
+        Write-Host "Successfully connected to ISIM SOAP Webservice" -ForegroundColor green
 
-    Write-Host -NoNewline "ISIM Version:      "
-    Write-Host -ForegroundColor yellow "$script:isim_version"
+        Write-Host -NoNewline "ISIM Version:      "
+        Write-Host -ForegroundColor yellow "$script:isim_version"
     
-    Write-Host -NoNewLine "ISIM FP Level:     "
-    Write-Host -ForegroundColor yellow "$script:isim_fp"
+        Write-Host -NoNewLine "ISIM FP Level:     "
+        Write-Host -ForegroundColor yellow "$script:isim_fp"
 
-    Write-Host -NoNewLine "SOAP Target Type:  "
-    Write-Host -ForegroundColor yellow "$script:ws_target_type"
+        Write-Host -NoNewLine "SOAP Target Type:  "
+        Write-Host -ForegroundColor yellow "$script:ws_target_type"
 
-    Write-Host -NoNewLine "SOAP Version:      "
-    Write-Host -ForegroundColor yellow "$script:ws_version"
+        Write-Host -NoNewLine "SOAP Version:      "
+        Write-Host -ForegroundColor yellow "$script:ws_version"
 
-	# Clone Objects to fit Namespaces
-	$script:psession = Copy-ISIMObjectNamespace $script:session $person_ns
-	$script:asession = Copy-ISIMObjectNamespace $script:session $account_ns
-	$script:csession = Copy-ISIMObjectNamespace $script:session $container_ns
-	$script:ssession = Copy-ISIMObjectNamespace $script:session $service_ns
-	$script:pwsession = Copy-ISIMObjectNamespace $script:session $password_ns
-	$script:rsession = Copy-ISIMObjectNamespace $script:session $request_ns
-	$script:rlsession = Copy-ISIMObjectNamespace $script:session $role_ns
+	    # Clone Objects to fit Namespaces
+	    $script:psession = Copy-ISIMObjectNamespace $script:session $person_ns
+	    $script:asession = Copy-ISIMObjectNamespace $script:session $account_ns
+	    $script:csession = Copy-ISIMObjectNamespace $script:session $container_ns
+	    $script:ssession = Copy-ISIMObjectNamespace $script:session $service_ns
+	    $script:pwsession = Copy-ISIMObjectNamespace $script:session $password_ns
+	    $script:rsession = Copy-ISIMObjectNamespace $script:session $request_ns
+	    $script:rlsession = Copy-ISIMObjectNamespace $script:session $role_ns
 
-    $script:rootContainer = $container_prx.getOrganizations($script:csession) | Where-Object -Property "name" -EQ -Value $ou_name
+        $script:rootContainer = $container_prx.getOrganizations($script:csession) | Where-Object -Property "name" -EQ -Value $ou_name
+
+    }
 
 }
 
@@ -676,10 +687,10 @@ function Update-ISIMPerson {
 
 <## 
 
- TBD - Create-ISIMPerson not working right now !
+ TBD - New-ISIMPerson not working right now !
 
 ##>
-function Create-ISIMPerson {
+function New-ISIMPerson {
     <#
     
     .SYNOPSIS
@@ -703,17 +714,17 @@ function Create-ISIMPerson {
     )
     process {
 
-        $ou = $script:container_prx.searchContainerByName($script:csession,$script:rootContainer,$CProfile,$Container)
-        $ou = Copy-ISIMObjectNamespace -obj $ou -targetNS $script:person_ns
+        $ou_search = $script:container_prx.searchContainerByName($script:csession,$script:rootContainer,$CProfile,$Container)
+        if($ou_search.Length -eq 1) {
+            $ou = Copy-ISIMObjectNamespace -obj $ou_search[0] -targetNS $script:person_ns
+        }
 
 
         $wsperson = New-Object $($script:person_ns+".WSPerson")
         $wsperson.profileName = $Profile
-        $wsperson.name = "Unknown"
-        $wsperson.itimDN = "erglobalid=1234567890123456789,ou=0,ou=people,erglobalid=00000000000000000000,ou=SAD,DC=DE"
 
-        $wsattr_mandatory = @{"cn"="common name";"sn"="surname"}
-        $wsattr = Convert-Hash2WSAttr -hash $wsattr_mandatory -namespace $script:person_ns
+        #$wsattr_mandatory = @{"cn"="common name";"sn"="surname"}
+        $wsattr = Convert-Hash2WSAttr -hash $Attributes -namespace $script:person_ns
 
         $wsperson.attributes = $wsattr;
         
@@ -745,3 +756,4 @@ Export-ModuleMember -Function New-ISIMAccount
 Export-ModuleMember -Function Set-ISIMPasswords
 Export-ModuleMember -Function Get-ISIMPerson
 Export-ModuleMember -Function Update-ISIMPerson
+Export-ModuleMember -Function New-ISIMPerson
