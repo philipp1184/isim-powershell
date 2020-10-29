@@ -21,4 +21,9 @@ Get-ISIMPerson -LDAPFilter "(uid=UserA)" | Remove-ISIMRole -roleDN $((Get-ISIMRo
 
 # Add Role From User by LDAPFilter
 Get-ISIMPerson -LDAPFilter "(uid=UserA)" | Add-ISIMRole -roleDN $((Get-ISIMRoleDN "Role B").itimDN)
+
+# New Person
+New-ISIMPerson -Container "DepartmentX" -Profile "CorpEmployee" -Attributes @{"cn"="common name";"sn"="surname";"uid"="myusername123";"givenname"="givenname";"mail"="max.power@example.org"}
+
+
  ```
