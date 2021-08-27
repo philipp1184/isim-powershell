@@ -11,7 +11,7 @@
 
 function Copy-ISIMObjectNamespace {
     <#
-    
+
     .SYNOPSIS
         Helper Function to create WS Objects for the different WebServices
 
@@ -31,7 +31,7 @@ function Copy-ISIMObjectNamespace {
 
 
     #>
-    param( 	
+    param(
         [Parameter(Mandatory=$true)]
         $obj,
 	    [Parameter(Mandatory=$true)]
@@ -42,7 +42,7 @@ function Copy-ISIMObjectNamespace {
 
     $newObj = New-Object ( $targetNS+"."+$myTypeName)
 
-    $obj.psobject.Properties | % { 
+    $obj.psobject.Properties | % {
         $pname = $_.Name
         if ( $_.TypeNameOfValue.StartsWith("System.") ) {
             if( $newObj.psobject.Properties.Item($pname) -ne $null ) {
@@ -61,7 +61,7 @@ function Copy-ISIMObjectNamespace {
 }
 
 function Convert-Hash2WSAttr {
-    <# 
+    <#
     .SYNOPSIS
         Helper Function to manage WSAttr with Hash Tables
 
@@ -73,7 +73,7 @@ function Convert-Hash2WSAttr {
     [OutputType([string])]
     param (
         [Parameter(Mandatory=$true)]
-        [hashtable]$hash, 
+        [hashtable]$hash,
         [Parameter(Mandatory=$true)]
         [string]$namespace,
         [Parameter(ValueFromPipelineByPropertyName=$true)]
@@ -82,10 +82,10 @@ function Convert-Hash2WSAttr {
     process {
 
 
-        if ( $inAttr -NE $null ) { 
+        if ( $inAttr -NE $null ) {
             $wsattr_array = $inAttr;
 
-            $hash.GetEnumerator() | ForEach{ 
+            $hash.GetEnumerator() | ForEach{
                 $prop_name = $_.name;
                 $prop_value = $_.value;
 
@@ -102,10 +102,10 @@ function Convert-Hash2WSAttr {
 
         } else {
             $wsattr_array = @();
-            $hash.GetEnumerator() | ForEach{ 
+            $hash.GetEnumerator() | ForEach{
                 $wsattr = New-Object ($namespace+".WSAttribute")
                 $wsattr.name = $_.name
-                $wsattr.values +=  $_.value 
+                $wsattr.values +=  $_.value
                 $wsattr_array += $wsattr
             }
         }
@@ -119,7 +119,7 @@ function Convert-Hash2WSAttr {
 
 function Wait-ForRequestCompletion {
     <#
-    
+
     .SYNOPSIS
         Helper Function to Wait until a Request ist finished
 
@@ -130,7 +130,7 @@ function Wait-ForRequestCompletion {
     param (
         [Parameter(Mandatory=$true)]
         [long]$requestId
-    )  
+    )
     begin {
         Test-ISIMSession
     }
@@ -146,7 +146,7 @@ function Wait-ForRequestCompletion {
 
 function Test-ISIMSession {
     <#
-    
+
     .SYNOPSIS
         Check if an established WS connection exists.
 
@@ -161,15 +161,15 @@ function Test-ISIMSession {
 
         if($script:session -eq $null) {
             Write-Error "No Active ISIM WS Session" -ErrorAction Stop
-        }      
-        
+        }
+
 
     }
 }
 
 function Get-ISIMServiceName2DN {
     <#
-    
+
     .SYNOPSIS
         Get DN of a Service by its Name
 
@@ -179,7 +179,7 @@ function Get-ISIMServiceName2DN {
     #>
     [CmdletBinding()]
     [OutputType([string])]
-    param ( 
+    param (
         [Parameter(Mandatory=$true)]
         [string]$name
         )
@@ -198,7 +198,7 @@ function Get-ISIMServiceName2DN {
 
 function Get-ISIMContainerName2DN {
     <#
-    
+
     .SYNOPSIS
         Get DN of a Container by its Name
 
@@ -207,7 +207,7 @@ function Get-ISIMContainerName2DN {
     #>
     [CmdletBinding()]
     [OutputType([string])]
-    param ( 
+    param (
         [Parameter(Mandatory=$true)]
         [string]$name
         )
@@ -222,7 +222,7 @@ function Get-ISIMContainerName2DN {
 
 function Get-ISIMPersonUID2DN {
     <#
-    
+
     .SYNOPSIS
         Get a Person DN by providing a UserID
 
@@ -241,10 +241,10 @@ function Get-ISIMPersonUID2DN {
     }
     process {
         $person_dn = $null;
-        $ldapFilter = "(uid="+$uid+")"; 
-        #$attrList = nul; # Optional, supply an array of attribute names to be returned. 
-        # A null value will return all attributes. 
-        $persons = $person_prx.searchPersonsFromRoot($script:psession, $ldapFilter, $attrList); 
+        $ldapFilter = "(uid="+$uid+")";
+        #$attrList = nul; # Optional, supply an array of attribute names to be returned.
+        # A null value will return all attributes.
+        $persons = $person_prx.searchPersonsFromRoot($script:psession, $ldapFilter, $attrList);
 
         if ( $persons.Count -ne 1 ) {
             Write-Host -ForegroundColor Red "Search Parameter uid=$uid has no unique results."
@@ -260,7 +260,7 @@ function Get-ISIMPersonUID2DN {
 
 function Connect-ISIM {
     <#
-    
+
     .SYNOPSIS
         Connect to ISIM SOAP WebService
 
@@ -268,9 +268,9 @@ function Connect-ISIM {
         Connect to ISIM SOAP WebService. Creates a Client Session.
 
     #>
-    param( 	
-        [Parameter(Mandatory=$true)]
-        [PSCredential]$Credential,
+    param(
+      [Parameter(Mandatory=$true)]
+      [PSCredential]$Credential,
 	    [Parameter(Mandatory=$true)]
 	    [string]$isim_url,
 	    [Parameter(Mandatory=$false)]
@@ -282,8 +282,8 @@ function Connect-ISIM {
     }
 
     Process {
-        $isimuid = $cred.GetNetworkCredential().username
-        $isimpwd = $cred.GetNetworkCredential().password
+      $isimuid = $cred.GetNetworkCredential().username
+      $isimpwd = $cred.GetNetworkCredential().password
 
 	    ## Initialize SOAP WSDL URLs
 	    $script:isim_url = $isim_url;
@@ -331,7 +331,7 @@ function Connect-ISIM {
         if($script:session -eq $null) {
             Write-Error "Could not Login to WebService" -ErrorAction Stop
         }
-    
+
         $script:isim_version = $script:session_prx.getItimVersion()
         $script:isim_fp = $script:session_prx.getItimFixpackLevel()
         $script:ws_target_type = $script:session_prx.getWebServicesTargetType()
@@ -341,7 +341,7 @@ function Connect-ISIM {
 
         Write-Host -NoNewline "ISIM Version:      "
         Write-Host -ForegroundColor yellow "$script:isim_version"
-    
+
         Write-Host -NoNewLine "ISIM FP Level:     "
         Write-Host -ForegroundColor yellow "$script:isim_fp"
 
@@ -368,7 +368,7 @@ function Connect-ISIM {
 
 function Disconnect-ISIM {
     <#
-    
+
     .SYNOPSIS
         Connect to ISIM SOAP WebService
 
@@ -410,7 +410,7 @@ function Disconnect-ISIM {
 
 function Add-ISIMRole {
     <#
-    
+
     .SYNOPSIS
         Add a Role to a Person
 
@@ -422,7 +422,9 @@ function Add-ISIMRole {
         [Parameter(Mandatory=$true,ValueFromPipeline=$true,Position=1)]
         [psobject]$wsperson,
         [Parameter(Mandatory=$true,Position=2)]
-        [string]$roleDN
+        [string]$roleDN,
+        [Parameter(Mandatory=$false,Position=3)]
+        [bool]$wait=$true
     )
     begin {
         Test-ISIMSession
@@ -433,7 +435,9 @@ function Add-ISIMRole {
 
         $req = $person_prx.addRole($script:psession,$personDN,$roleDN,$null,$false,"no");
 
-        Wait-ForRequestCompletion($req.requestId);
+        if($wait) {
+          Wait-ForRequestCompletion($req.requestId);
+        }
 
     }
 
@@ -441,14 +445,14 @@ function Add-ISIMRole {
 
 function Remove-ISIMRole {
     <#
-    
+
     .SYNOPSIS
         Remove a Role to a Person
 
     .DESCRIPTION
         Remove a Role to a Person
 
-    #>    
+    #>
     param (
         [Parameter(Mandatory=$true,ValueFromPipeline=$true,Position=1)]
         [psobject]$wsperson,
@@ -469,7 +473,7 @@ function Remove-ISIMRole {
 
 function Get-ISIMRole {
     <#
-    
+
     .SYNOPSIS
         Get ISIM Roles by Role Name
 
@@ -499,7 +503,7 @@ function Get-ISIMRole {
 
 function New-ISIMAccount {
     <#
-    
+
     .SYNOPSIS
         Create new Accounts for a Person
 
@@ -532,7 +536,7 @@ function New-ISIMAccount {
         #$a_attr.Add("eraccountstatus","0");
         $a_attr.Add("owner",$personDN);
 
-        $wsattr = $script:account_prx.getDefaultAccountAttributesByPerson($script:asession,$serviceDN,$personDN)    
+        $wsattr = $script:account_prx.getDefaultAccountAttributesByPerson($script:asession,$serviceDN,$personDN)
 
         if(-not ($a_attr -eq $null)) {
             $wsattr = Convert-Hash2WSAttr -hash $a_attr -namespace $script:account_ns -inAttr $wsattr
@@ -549,7 +553,7 @@ function New-ISIMAccount {
 
 function Set-ISIMPasswords {
     <#
-    
+
     .SYNOPSIS
         Set Passwords for 1 or more Accounts on a Person
 
@@ -579,7 +583,7 @@ function Set-ISIMPasswords {
         $pwd_accounts = @()
 
         foreach ($a in $accounts) {
-        
+
             if ( $services.Contains($a.serviceName)) {
                 $pwd_accounts += $a.itimDN
                 Write-Host $a.serviceName
@@ -598,7 +602,7 @@ function Set-ISIMPasswords {
         $status = $request_prx.getRequest($rsession,$res.requestId);
 
         Write-Host "Password SET Request finished with Status" $status.statusString
-    
+
 
 
         $initial_pwd
@@ -609,7 +613,7 @@ function Set-ISIMPasswords {
 
 function Get-ISIMPerson {
     <#
-    
+
     .SYNOPSIS
         Get ISIM Person by Uid or LDAP Filter
 
@@ -635,7 +639,7 @@ function Get-ISIMPerson {
         Test-ISIMSession
     }
     process {
-        
+
         if( $LDAPFilter -is [string] -and $LDAPFilter -like "(*)" ) {
             $script:person_prx.searchPersonsFromRoot($script:psession,$LDAPFilter,$null)
         } else {
@@ -643,7 +647,7 @@ function Get-ISIMPerson {
             $script:person_prx.lookupPerson($script:psession,$p_dn)
         }
 
-        
+
     }
 
 
@@ -651,7 +655,7 @@ function Get-ISIMPerson {
 
 function Update-ISIMPerson {
     <#
-    
+
     .SYNOPSIS
         Update Person Attributes by providing a Hash Table
 
@@ -679,25 +683,25 @@ function Update-ISIMPerson {
         Write-Host -ForegroundColor red $_.Exception.InnerException.Message
     }
 
-    
+
 
 
 }
 
 
-<## 
+<##
 
  TBD - New-ISIMPerson not working right now !
 
 ##>
 function New-ISIMPerson {
     <#
-    
+
     .SYNOPSIS
-        Create Person 
+        Create Person
 
     .DESCRIPTION
-        Create Person 
+        Create Person
 
     #>
     [CmdletBinding()]
@@ -727,7 +731,7 @@ function New-ISIMPerson {
         $wsattr = Convert-Hash2WSAttr -hash $Attributes -namespace $script:person_ns
 
         $wsperson.attributes = $wsattr;
-        
+
 
 
         $req = $script:person_prx.createPerson($script:psession,$ou,$wsperson,$null,$false,"none")
