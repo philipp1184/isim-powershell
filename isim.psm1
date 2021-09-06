@@ -247,7 +247,7 @@ function Get-ISIMPersonUID2DN {
         $persons = $person_prx.searchPersonsFromRoot($script:psession, $ldapFilter, $attrList);
 
         if ( $persons.Count -ne 1 ) {
-            Write-Host -ForegroundColor Red "Search Parameter uid=$uid has no unique results."
+            Write-Host -ForegroundColor Red "Search Parameter uid=$uid has no unique results. Count: $($persons.Count)"
         } else {
             $person_dn = $persons.itimDN;
         }
@@ -282,8 +282,8 @@ function Connect-ISIM {
     }
 
     Process {
-      $isimuid = $cred.GetNetworkCredential().username
-      $isimpwd = $cred.GetNetworkCredential().password
+        $isimuid = $cred.GetNetworkCredential().username
+        $isimpwd = $cred.GetNetworkCredential().password
 
 	    ## Initialize SOAP WSDL URLs
 	    $script:isim_url = $isim_url;
@@ -641,11 +641,16 @@ function Get-ISIMPerson {
     process {
 
         if( $LDAPFilter -is [string] -and $LDAPFilter -like "(*)" ) {
-            $script:person_prx.searchPersonsFromRoot($script:psession,$LDAPFilter,$null)
+            $person = $script:person_prx.searchPersonsFromRoot($script:psession,$LDAPFilter,$null)
         } else {
             $p_dn = Get-ISIMPersonUID2DN -uid $Uid
-            $script:person_prx.lookupPerson($script:psession,$p_dn)
+            if( -not ($p_dn -eq $null) ) {
+                $person = $script:person_prx.lookupPerson($script:psession,$p_dn)
+            }
         }
+
+
+        return $person;
 
 
     }
@@ -736,8 +741,9 @@ function New-ISIMPerson {
 
         $req = $script:person_prx.createPerson($script:psession,$ou,$wsperson,$null,$false,"none")
 
-
-        Wait-ForRequestCompletion($req.requestId);
+        if( -not ($req -eq $null) ) {
+            Wait-ForRequestCompletion($req.requestId);
+        }
 
 
     }
