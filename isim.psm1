@@ -60,6 +60,38 @@ function Copy-ISIMObjectNamespace {
     return $newObj
 }
 
+function Convert-WSAttr2Hash {
+    <#
+    .SYNOPSIS
+        Helper Function to manage WSAttr with Hash Tables
+
+    .DESCRIPTION
+        Helper Function to manage WSAttr with Hash Tables
+
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory=$true)]
+        [psobject]$wsattr
+    )
+    process {
+        $hashMap = @{}
+
+        $wsattr | ForEach-Object {
+            $name = $_.name;
+            $values = $_.values;
+
+            $hashMap.Add($name, $values);
+
+
+        }
+
+        return $hashMap;
+        
+    }
+}
+
 function Convert-Hash2WSAttr {
     <#
     .SYNOPSIS
@@ -257,6 +289,65 @@ function Get-ISIMPersonUID2DN {
     }
 }
 
+function Get-ISIMPersonsByFilter {
+    <#
+
+    .SYNOPSIS
+        Get Persons by LDAP Filter
+
+    .DESCRIPTION
+        Get Persons by LDAP Filter
+
+    #>
+    [OutputType([psobject])]
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$ldapFilter
+    )
+    begin {
+        Test-ISIMSession
+    }
+    process {
+
+        #$attrList = nul; # Optional, supply an array of attribute names to be returned.
+        # A null value will return all attributes.
+        $persons = $person_prx.searchPersonsFromRoot($script:psession, $ldapFilter, $attrList);
+
+        $persons;
+
+    }
+}
+
+function Get-ISIMAccountsByOwnerUID {
+    <#
+
+    .SYNOPSIS
+        Get Accounts by UserID
+
+    .DESCRIPTION
+        Get Accounts by UserID
+
+    #>
+   [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$uid
+    )
+    begin {
+        Test-ISIMSession
+    }
+    process {
+
+        $person_dn = Get-ISIMPersonUID2DN -uid $uid
+
+        $accounts = $person_prx.getAccountsByOwner($script:psession,$person_dn);
+
+        $accounts;
+
+    }
+
+}
 
 function Connect-ISIM {
     <#
@@ -750,6 +841,42 @@ function New-ISIMPerson {
 }
 
 
+function Add-ISIMAccountToPerson {
+    <#
+
+    .SYNOPSIS
+        Assign Account to Person - NOT READY !!! NOT READY !!!
+
+    .DESCRIPTION
+        Assign Account to Person - NOT READY !!! NOT READY !!!
+
+    #>
+    param (
+        [Parameter(Mandatory=$true,Position=1)]
+        [psobject]$account,
+        [Parameter(Mandatory=$true,Position=2)]
+        [psobject]$person
+    )
+    process {
+
+
+        # $account_prx.modifyAccount($script:asession,$account.itimDN,$account.attributes, $null, $false, "");
+        # $wsattr = Convert-WSAttr2Hash $account.attributes;
+        # $wsattr = Copy-ISIMObjectNamespace -obj $account.attributes -targetNS $account_ns
+        # $wsattr.owner = $person.itimDN;
+
+
+
+        $req = $script:account_prx.adoptSingleAccount($script:asession,$account_dn,$person_dn);
+
+        if( -not ($req -eq $null) ) {
+            Wait-ForRequestCompletion($req.requestId);
+        }
+
+
+    }
+}
+
 Export-ModuleMember -Function Copy-ISIMObjectNamespace
 Export-ModuleMember -Function Convert-Hash2WSAttr
 Export-ModuleMember -Function Wait-ForRequestCompletion
@@ -767,3 +894,7 @@ Export-ModuleMember -Function Set-ISIMPasswords
 Export-ModuleMember -Function Get-ISIMPerson
 Export-ModuleMember -Function Update-ISIMPerson
 Export-ModuleMember -Function New-ISIMPerson
+Export-ModuleMember -Function Get-ISIMAccountsByOwnerUID
+Export-ModuleMember -Function Convert-WSAttr2Hash
+Export-ModuleMember -Function Get-ISIMPersonsByFilter
+Export-ModuleMember -Function Add-ISIMAccountToPerson
