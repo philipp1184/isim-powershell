@@ -6,7 +6,7 @@
         the ability to script WebUI interactions.
 #>
 
-
+Import-Module $PSScriptRoot\vendor\1ASOAP\Source\SOAPProxy\Modules\SOAPProxy\SOAPProxy.psm1 -Force
 
 
 function Copy-ISIMObjectNamespace {
@@ -38,7 +38,24 @@ function Copy-ISIMObjectNamespace {
 	    [string]$targetNS
     )
 
+    
+
     $myTypeName = $obj.getType().Name.Split("[")[0];
+
+    if( $obj.getType().BaseType.Name -eq "Array" ) {
+        $tmp_array = @();
+        
+        $obj | % {
+            $tmp1 = Copy-ISIMObjectNamespace $_ $targetNS;
+            $tmp_array += $tmp1;
+        }
+
+        return $tmp_array;
+
+
+
+
+    } 
 
     $newObj = New-Object ( $targetNS+"."+$myTypeName)
 
@@ -88,7 +105,7 @@ function Convert-WSAttr2Hash {
         }
 
         return $hashMap;
-        
+
     }
 }
 
@@ -390,6 +407,30 @@ function Connect-ISIM {
 
 
         Try {
+
+        
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_session
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_person
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_searchdata
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_account
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_container
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_service
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_password
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_request
+        Initialize-SOAPProxy -Uri $script:isim_wsdl_role
+
+	    $script:session_prx = Get-SOAPProxy -Uri $isim_wsdl_session -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Session"
+	    $script:person_prx = Get-SOAPProxy -Uri $isim_wsdl_person  -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Person"
+	    $script:search_prx = Get-SOAPProxy -Uri $isim_wsdl_searchdata -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Search"
+	    $script:account_prx = Get-SOAPProxy -Uri $isim_wsdl_account -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Account"
+	    $script:container_prx = Get-SOAPProxy -Uri $isim_wsdl_container -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Container"
+	    $script:service_prx = Get-SOAPProxy -Uri $isim_wsdl_service -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Service"
+	    $script:password_prx = Get-SOAPProxy -Uri $isim_wsdl_password -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Password"
+	    $script:request_prx = Get-SOAPProxy -Uri $isim_wsdl_request -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Request"
+        $script:role_prx = Get-SOAPProxy -Uri $isim_wsdl_role -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Role"
+        
+
+        <#
 	    $script:session_prx = New-WebServiceProxy -Uri $isim_wsdl_session -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Session"
 	    $script:person_prx = New-WebServiceProxy -Uri $isim_wsdl_person  -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Person"
 	    $script:search_prx = New-WebServiceProxy -Uri $isim_wsdl_searchdata -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Search"
@@ -399,6 +440,8 @@ function Connect-ISIM {
 	    $script:password_prx = New-WebServiceProxy -Uri $isim_wsdl_password -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Password"
 	    $script:request_prx = New-WebServiceProxy -Uri $isim_wsdl_request -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Request"
         $script:role_prx = New-WebServiceProxy -Uri $isim_wsdl_role -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Role"
+        #>
+
         }
         Catch {
             Write-Host -ForegroundColor Red "Could not load WSDL Information"
@@ -638,9 +681,41 @@ function New-ISIMAccount {
 
         $req = $account_prx.createAccount($asession, $serviceDN, $wsattr, $null, $false, "none")
 
-        Wait-ForRequestCompletion($res.requestId);
+        Wait-ForRequestCompletion($req.requestId);
     }
 }
+
+
+
+function Get-ISIMAccounts {
+    <#
+
+    .SYNOPSIS
+        Create new Accounts for a Person
+
+    .DESCRIPTION
+        Create new Accounts for a Person
+
+    #>
+    param (
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true,Position=1)]
+        [psobject]$wsperson
+    )
+    begin {
+        Test-ISIMSession
+    }
+    process {
+
+
+        $itimDN = $wsperson.itimDN;
+
+        return $script:person_prx.getAccountsByOwner($script:psession,$itimDN);
+
+    }
+}
+
+
+
 
 function Set-ISIMPasswords {
     <#
@@ -840,15 +915,41 @@ function New-ISIMPerson {
     }
 }
 
+function Remove-ISIMAccount {
+    <#
+
+    .SYNOPSIS
+        Delete Account
+
+    .DESCRIPTION
+        Delete Account
+
+    #>
+    param (
+        [Parameter(Mandatory=$true,Position=1)]
+        [psobject]$account
+    )
+    process {
+
+        
+        $req = $script:account_prx.deprovisionAccount($script:asession, $account.itimDN, $null, $false, "Remove-ISIMAccount")
+        if( -not ($req -eq $null) ) {
+            Wait-ForRequestCompletion($req.requestId);
+        }
+
+
+    }
+}
+
 
 function Add-ISIMAccountToPerson {
     <#
 
     .SYNOPSIS
-        Assign Account to Person - NOT READY !!! NOT READY !!!
+        Assign Account to Person
 
     .DESCRIPTION
-        Assign Account to Person - NOT READY !!! NOT READY !!!
+        Assign Account to Person
 
     #>
     param (
@@ -859,21 +960,22 @@ function Add-ISIMAccountToPerson {
     )
     process {
 
+        # Copy Account Object Attributes to correct Namespace
+        $accountNew = Copy-ISIMObjectNamespace -obj $account -targetNS $script:account_ns;
 
-        # $account_prx.modifyAccount($script:asession,$account.itimDN,$account.attributes, $null, $false, "");
-        # $wsattr = Convert-WSAttr2Hash $account.attributes;
-        # $wsattr = Copy-ISIMObjectNamespace -obj $account.attributes -targetNS $account_ns
-        # $wsattr.owner = $person.itimDN;
+        # orhpan Account
+        $script:account_prx.orphanSingleAccount($script:asession,$accountNew.itimDN);
+        sleep -Milliseconds 500
+        # search new orhpaned itimDN
+        $wssearcharg = New-Object ($script:account_ns+".WSSearchArguments")
+        $wssearcharg.profile = $accountNew.profileName;
+        $wssearcharg.filter = "(eruid=$($accountNew.name))";
 
-
-
-        $req = $script:account_prx.adoptSingleAccount($script:asession,$account_dn,$person_dn);
-
-        if( -not ($req -eq $null) ) {
-            Wait-ForRequestCompletion($req.requestId);
-        }
-
-
+        # do Search Task
+        $account_search = $script:account_prx.searchAccounts($script:asession, $wssearcharg);
+        
+        # Adopt orphaned Account to new Person
+        $script:account_prx.adoptSingleAccount($script:asession,$account_search.itimDN,$person.itimDN);
     }
 }
 
@@ -898,3 +1000,5 @@ Export-ModuleMember -Function Get-ISIMAccountsByOwnerUID
 Export-ModuleMember -Function Convert-WSAttr2Hash
 Export-ModuleMember -Function Get-ISIMPersonsByFilter
 Export-ModuleMember -Function Add-ISIMAccountToPerson
+Export-ModuleMember -Function Remove-ISIMAccount
+Export-ModuleMember -Function Get-ISIMAccounts
