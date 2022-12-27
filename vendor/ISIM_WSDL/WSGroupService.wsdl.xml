@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://services.ws.itim.ibm.com" xmlns:impl="http://services.ws.itim.ibm.com" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:intf="http://services.ws.itim.ibm.com" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns1="http://model.ws.itim.ibm.com" xmlns:tns2="http://exceptions.ws.itim.ibm.com">
+  <wsdl:types>
+    <schema elementFormDefault="qualified" targetNamespace="http://services.ws.itim.ibm.com" xmlns="http://www.w3.org/2001/XMLSchema">
+   <import namespace="http://exceptions.ws.itim.ibm.com"/>
+   <import namespace="http://model.ws.itim.ibm.com"/>
+   <element name="addGroupMembers">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="groupDN" type="xsd:string"/>
+      <element maxOccurs="unbounded" name="accountDNs" type="xsd:string"/>
+      <element minOccurs="0" name="date" nillable="true" type="xsd:dateTime"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="addGroupMembersResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="addGroupMembersReturn" type="tns1:WSRequest"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="fault" type="tns2:WSLoginServiceException"/>
+   <element name="fault1" type="tns2:WSApplicationException"/>
+   <element name="fault3" type="tns2:WSUnsupportedVersionException"/>
+   <element name="createGroup">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="wsGroup" type="tns1:WSGroup"/>
+     </sequence>
+    </complexType>
+   </element>
+   <complexType name="ArrayOf_xsd_string">
+    <sequence>
+     <element maxOccurs="unbounded" minOccurs="0" name="item" type="xsd:string"/>
+    </sequence>
+   </complexType>
+   <complexType name="ArrayOf_tns1_WSAttribute">
+    <sequence>
+     <element maxOccurs="unbounded" minOccurs="0" name="item" type="tns1:WSAttribute"/>
+    </sequence>
+   </complexType>
+   <element name="createGroupResponse">
+    <complexType>
+     <sequence>
+      <element name="createGroupReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupMembers">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="groupDN" type="xsd:string"/>
+      <element name="userId" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupMembersResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="getGroupMembersReturn" type="tns1:WSAccount"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupsByAccess">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="serviceDN" type="xsd:string"/>
+      <element name="groupProfileName" type="xsd:string"/>
+      <element name="accessInfo" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupsByAccessResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="getGroupsByAccessReturn" type="tns1:WSGroup"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupsByAccount">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="accountDN" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupsByAccountResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="getGroupsByAccountReturn" type="tns1:WSGroup"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupsByService">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="serviceDN" type="xsd:string"/>
+      <element name="groupProfileName" type="xsd:string"/>
+      <element name="groupInfo" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getGroupsByServiceResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="getGroupsByServiceReturn" type="tns1:WSGroup"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="lookupGroup">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="groupDN" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="lookupGroupResponse">
+    <complexType>
+     <sequence>
+      <element name="lookupGroupReturn" type="tns1:WSGroup"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="removeGroup">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="groupDN" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="removeGroupResponse">
+    <complexType/>
+   </element>
+   <element name="removeGroupMembers">
+    <complexType>
+     <sequence>
+      <element name="session" type="tns1:WSSession"/>
+      <element name="groupDN" type="xsd:string"/>
+      <element maxOccurs="unbounded" name="accountDNs" type="xsd:string"/>
+      <element minOccurs="0" name="date" nillable="true" type="xsd:dateTime"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="removeGroupMembersResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="removeGroupMembersReturn" type="tns1:WSRequest"/>
+     </sequence>
+    </complexType>
+   </element>
+  </schema>
+    <schema elementFormDefault="qualified" targetNamespace="http://model.ws.itim.ibm.com" xmlns="http://www.w3.org/2001/XMLSchema">
+   <import namespace="http://exceptions.ws.itim.ibm.com"/>
+   <import namespace="http://services.ws.itim.ibm.com"/>
+   <complexType name="WSLocale">
+    <sequence>
+     <element minOccurs="0" name="country" nillable="true" type="xsd:string"/>
+     <element minOccurs="0" name="variant" nillable="true" type="xsd:string"/>
+     <element name="language" nillable="true" type="xsd:string"/>
+    </sequence>
+   </complexType>
+   <complexType name="WSSession">
+    <sequence>
+     <element name="clientSession" nillable="true" type="xsd:string"/>
+     <element name="enforceChallengeResponse" type="xsd:boolean"/>
+     <element minOccurs="0" name="locale" nillable="true" type="tns1:WSLocale"/>
+     <element name="sessionID" type="xsd:long"/>
+    </sequence>
+   </complexType>
+   <complexType name="WSRequest">
+    <sequence>
+     <element name="timeCompleted" nillable="true" type="xsd:dateTime"/>
+     <element name="subjectProfile" nillable="true" type="xsd:string"/>
+     <element name="result" nillable="true" type="xsd:string"/>
+     <element name="select" type="xsd:boolean"/>
+     <element name="description" nillable="true" type="xsd:string"/>
+     <element name="resultDetail" nillable="true" type="xsd:string"/>
+     <element name="processTypeString" nillable="true" type="xsd:string"/>
+     <element name="title" nillable="true" type="xsd:string"/>
+     <element name="owner" nillable="true" type="xsd:string"/>
+     <element name="processStateString" nillable="true" type="xsd:string"/>
+     <element name="status" type="xsd:int"/>
+     <element name="requestee" nillable="true" type="xsd:string"/>
+     <element name="timeSubmitted" nillable="true" type="xsd:dateTime"/>
+     <element name="subject" nillable="true" type="xsd:string"/>
+     <element name="requestId" type="xsd:long"/>
+     <element name="processType" nillable="true" type="xsd:string"/>
+     <element name="subjectService" nillable="true" type="xsd:string"/>
+     <element name="statusString" nillable="true" type="xsd:string"/>
+     <element name="processState" nillable="true" type="xsd:string"/>
+     <element name="timeScheduled" nillable="true" type="xsd:dateTime"/>
+    </sequence>
+   </complexType>
+   <complexType name="WSAttribute">
+    <sequence>
+     <element name="name" nillable="true" type="xsd:string"/>
+     <element name="operation" type="xsd:int"/>
+     <element name="values" nillable="true" type="impl:ArrayOf_xsd_string"/>
+     <element default="false" minOccurs="0" name="isEncoded" type="xsd:boolean"/>
+    </sequence>
+   </complexType>
+   <complexType name="WSObject">
+    <sequence>
+     <element name="attributes" nillable="true" type="impl:ArrayOf_tns1_WSAttribute"/>
+     <element name="select" type="xsd:boolean"/>
+     <element name="name" nillable="true" type="xsd:string"/>
+     <element name="itimDN" nillable="true" type="xsd:string"/>
+    </sequence>
+   </complexType>
+   <complexType name="WSGroup">
+    <complexContent>
+     <extension base="tns1:WSObject">
+      <sequence>
+       <element name="serviceDN" nillable="true" type="xsd:string"/>
+       <element name="description" nillable="true" type="xsd:string"/>
+       <element name="id" nillable="true" type="xsd:string"/>
+       <element name="profileName" nillable="true" type="xsd:string"/>
+      </sequence>
+     </extension>
+    </complexContent>
+   </complexType>
+   <complexType name="WSAccount">
+    <complexContent>
+     <extension base="tns1:WSObject">
+      <sequence>
+       <element name="serviceDN" nillable="true" type="xsd:string"/>
+       <element name="profileName" nillable="true" type="xsd:string"/>
+       <element name="serviceName" nillable="true" type="xsd:string"/>
+      </sequence>
+     </extension>
+    </complexContent>
+   </complexType>
+  </schema>
+    <schema elementFormDefault="qualified" targetNamespace="http://exceptions.ws.itim.ibm.com" xmlns="http://www.w3.org/2001/XMLSchema">
+   <import namespace="http://model.ws.itim.ibm.com"/>
+   <import namespace="http://services.ws.itim.ibm.com"/>
+   <complexType name="WSLoginServiceException">
+    <sequence/>
+   </complexType>
+   <complexType name="WSApplicationException">
+    <sequence/>
+   </complexType>
+   <complexType name="WSUnsupportedVersionException">
+    <sequence/>
+   </complexType>
+  </schema>
+  </wsdl:types>
+  <wsdl:message name="removeGroupMembersResponse">
+    <wsdl:part name="parameters" element="impl:removeGroupMembersResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="addGroupMembersResponse">
+    <wsdl:part name="parameters" element="impl:addGroupMembersResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="WSApplicationException">
+    <wsdl:part name="fault" element="impl:fault1">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupsByAccountRequest">
+    <wsdl:part name="parameters" element="impl:getGroupsByAccount">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupsByServiceResponse">
+    <wsdl:part name="parameters" element="impl:getGroupsByServiceResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupsByAccessResponse">
+    <wsdl:part name="parameters" element="impl:getGroupsByAccessResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupMembersResponse">
+    <wsdl:part name="parameters" element="impl:getGroupMembersResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupsByAccessRequest">
+    <wsdl:part name="parameters" element="impl:getGroupsByAccess">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupsByAccountResponse">
+    <wsdl:part name="parameters" element="impl:getGroupsByAccountResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="createGroupResponse">
+    <wsdl:part name="parameters" element="impl:createGroupResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="removeGroupResponse">
+    <wsdl:part name="parameters" element="impl:removeGroupResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="WSLoginServiceException">
+    <wsdl:part name="fault" element="impl:fault">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="createGroupRequest">
+    <wsdl:part name="parameters" element="impl:createGroup">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="removeGroupMembersRequest">
+    <wsdl:part name="parameters" element="impl:removeGroupMembers">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="WSUnsupportedVersionException">
+    <wsdl:part name="fault" element="impl:fault3">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="addGroupMembersRequest">
+    <wsdl:part name="parameters" element="impl:addGroupMembers">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="removeGroupRequest">
+    <wsdl:part name="parameters" element="impl:removeGroup">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="lookupGroupResponse">
+    <wsdl:part name="parameters" element="impl:lookupGroupResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="lookupGroupRequest">
+    <wsdl:part name="parameters" element="impl:lookupGroup">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupMembersRequest">
+    <wsdl:part name="parameters" element="impl:getGroupMembers">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="getGroupsByServiceRequest">
+    <wsdl:part name="parameters" element="impl:getGroupsByService">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="WSGroupService">
+    <wsdl:operation name="addGroupMembers">
+      <wsdl:input name="addGroupMembersRequest" message="impl:addGroupMembersRequest">
+    </wsdl:input>
+      <wsdl:output name="addGroupMembersResponse" message="impl:addGroupMembersResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="createGroup">
+      <wsdl:input name="createGroupRequest" message="impl:createGroupRequest">
+    </wsdl:input>
+      <wsdl:output name="createGroupResponse" message="impl:createGroupResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupMembers">
+      <wsdl:input name="getGroupMembersRequest" message="impl:getGroupMembersRequest">
+    </wsdl:input>
+      <wsdl:output name="getGroupMembersResponse" message="impl:getGroupMembersResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupsByAccess">
+      <wsdl:input name="getGroupsByAccessRequest" message="impl:getGroupsByAccessRequest">
+    </wsdl:input>
+      <wsdl:output name="getGroupsByAccessResponse" message="impl:getGroupsByAccessResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupsByAccount">
+      <wsdl:input name="getGroupsByAccountRequest" message="impl:getGroupsByAccountRequest">
+    </wsdl:input>
+      <wsdl:output name="getGroupsByAccountResponse" message="impl:getGroupsByAccountResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupsByService">
+      <wsdl:input name="getGroupsByServiceRequest" message="impl:getGroupsByServiceRequest">
+    </wsdl:input>
+      <wsdl:output name="getGroupsByServiceResponse" message="impl:getGroupsByServiceResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="lookupGroup">
+      <wsdl:input name="lookupGroupRequest" message="impl:lookupGroupRequest">
+    </wsdl:input>
+      <wsdl:output name="lookupGroupResponse" message="impl:lookupGroupResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="removeGroup">
+      <wsdl:input name="removeGroupRequest" message="impl:removeGroupRequest">
+    </wsdl:input>
+      <wsdl:output name="removeGroupResponse" message="impl:removeGroupResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="removeGroupMembers">
+      <wsdl:input name="removeGroupMembersRequest" message="impl:removeGroupMembersRequest">
+    </wsdl:input>
+      <wsdl:output name="removeGroupMembersResponse" message="impl:removeGroupMembersResponse">
+    </wsdl:output>
+      <wsdl:fault name="WSApplicationException" message="impl:WSApplicationException">
+    </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException" message="impl:WSLoginServiceException">
+    </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException" message="impl:WSUnsupportedVersionException">
+    </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="WSGroupServiceSoapBinding" type="impl:WSGroupService">
+    <wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="addGroupMembers">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="addGroupMembersRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="addGroupMembersResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="createGroup">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="createGroupRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="createGroupResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupMembers">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="getGroupMembersRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getGroupMembersResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupsByAccess">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="getGroupsByAccessRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getGroupsByAccessResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupsByAccount">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="getGroupsByAccountRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getGroupsByAccountResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="getGroupsByService">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="getGroupsByServiceRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="getGroupsByServiceResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="lookupGroup">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="lookupGroupRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="lookupGroupResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="removeGroup">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="removeGroupRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="removeGroupResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="removeGroupMembers">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="removeGroupMembersRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="removeGroupMembersResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="WSApplicationException">
+        <wsdlsoap:fault name="WSApplicationException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSLoginServiceException">
+        <wsdlsoap:fault name="WSLoginServiceException" use="literal"/>
+      </wsdl:fault>
+      <wsdl:fault name="WSUnsupportedVersionException">
+        <wsdlsoap:fault name="WSUnsupportedVersionException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="WSGroupServiceService">
+    <wsdl:port name="WSGroupService" binding="impl:WSGroupServiceSoapBinding">
+      <wsdlsoap:address location="https://sadsigidev01.skoda.sad:9444/itim/services/WSGroupServiceService"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

@@ -1,0 +1,3 @@
+[submodule "vendor/1ASOAP"]
+	path = vendor/1ASOAP
+	url = https://github.com/Sarafian/1ASOAP
