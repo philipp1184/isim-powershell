@@ -6,7 +6,7 @@
         the ability to script WebUI interactions.
 #>
 
-Import-Module $PSScriptRoot\vendor\1ASOAP\Source\SOAPProxy\Modules\SOAPProxy\SOAPProxy.psm1 -Force
+Import-Module $PSScriptRoot\vendor\1ASOAP\Source\SOAPProxy\Modules\SOAPProxy\SOAPProxy.psm1 -Force | Out-Null
 
 
 function Copy-ISIMObjectNamespace {
@@ -71,7 +71,12 @@ function Copy-ISIMObjectNamespace {
             if ( !$newObj.$pname ) {
                  $newObj.$pname = New-Object ( $targetNS+"."+($_.TypeNameOfValue.Split(".")[-1].Split("[")[0]))
             }
-            $newObj.$pname = Copy-ISIMObjectNamespace $obj.$pname $targetNS
+
+            if($obj.$pname -ne $null) {
+                $newObj.$pname = Copy-ISIMObjectNamespace $obj.$pname $targetNS
+            } else {
+                $newObj.$pname = $null
+            }
         }
     }
     return $newObj
@@ -182,12 +187,13 @@ function Wait-ForRequestCompletion {
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:request_ns
     }
     process {
         do {
             Write-Host -NoNewline "."
             Start-Sleep 3
-            $status = $script:request_prx.getRequest($script:rsession,$requestId)
+            $status = $script:request_prx.getRequest($session,$requestId)
         } while( $status.processState -ne "C" )
         Write-Host "Finished"
     }
@@ -208,7 +214,7 @@ function Test-ISIMSession {
     param ()
     process {
 
-        if($script:session -eq $null) {
+        if($ISIMConnection.ISIMSession -eq $null) {
             Write-Error "No Active ISIM WS Session" -ErrorAction Stop
         }
 
@@ -234,12 +240,14 @@ function Get-ISIMServiceName2DN {
         )
     begin {
         Test-ISIMSession
+
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:service_ns
     }
     process {
 
         $ldapFilter = "(erservicename=$name)"
         $container = Copy-ISIMObjectNamespace $script:rootContainer $service_ns
-        $response = $service_prx.searchServices($ssession,$container,$ldapFilter)
+        $response = $service_prx.searchServices($session,$container,$ldapFilter)
 
         $response.itimDN;
     }
@@ -262,9 +270,10 @@ function Get-ISIMContainerName2DN {
         )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:container_ns
     }
     process {
-        $response = $container_prx.searchContainerByName($csession, $rootContainer, "AdminDomain", $name)
+        $response = $container_prx.searchContainerByName($session, $rootContainer, "AdminDomain", $name)
         $response.itimDN;
     }
 }
@@ -287,13 +296,17 @@ function Get-ISIMPersonUID2DN {
     )
     begin {
         Test-ISIMSession
+        
     }
     process {
+
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
+
         $person_dn = $null;
         $ldapFilter = "(uid="+$uid+")";
         #$attrList = nul; # Optional, supply an array of attribute names to be returned.
         # A null value will return all attributes.
-        $persons = $person_prx.searchPersonsFromRoot($script:psession, $ldapFilter, $attrList);
+        $persons = $person_prx.searchPersonsFromRoot($session, $ldapFilter, $attrList);
 
         if ( $persons.Count -ne 1 ) {
             Write-Host -ForegroundColor Red "Search Parameter uid=$uid has no unique results. Count: $($persons.Count)"
@@ -305,6 +318,38 @@ function Get-ISIMPersonUID2DN {
 
     }
 }
+
+function Get-ISIMPersonRolesRole {
+    <#
+
+    .SYNOPSIS
+        Add a Role to a Person
+
+    .DESCRIPTION
+        Add a Role to a Person
+
+    #>
+    param (
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true,Position=1)]
+        [psobject]$wsperson
+    )
+    begin {
+        Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
+    }
+    process {
+
+        $personDN = $wsperson.itimDN;
+
+        $roles = $person_prx.getPersonRoles($session,$personDN);
+
+        $roles;
+
+    }
+
+}
+
+
 
 function Get-ISIMPersonsByFilter {
     <#
@@ -324,12 +369,13 @@ function Get-ISIMPersonsByFilter {
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
     }
     process {
 
         #$attrList = nul; # Optional, supply an array of attribute names to be returned.
         # A null value will return all attributes.
-        $persons = $person_prx.searchPersonsFromRoot($script:psession, $ldapFilter, $attrList);
+        $persons = $person_prx.searchPersonsFromRoot($script:person_session, $ldapFilter, $attrList);
 
         $persons;
 
@@ -353,12 +399,13 @@ function Get-ISIMAccountsByOwnerUID {
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
     }
     process {
 
         $person_dn = Get-ISIMPersonUID2DN -uid $uid
 
-        $accounts = $person_prx.getAccountsByOwner($script:psession,$person_dn);
+        $accounts = $person_prx.getAccountsByOwner($session,$person_dn);
 
         $accounts;
 
@@ -382,7 +429,8 @@ function Connect-ISIM {
 	    [Parameter(Mandatory=$true)]
 	    [string]$isim_url,
 	    [Parameter(Mandatory=$false)]
-	    [string]$ou_name
+	    [string]$ou_name,
+		[string]$auth_mode = "direct" # direct = authorize via SOAP Login Method; basic = authorize via Basic Auth Header for e.g. Reverse Proxy SSO Implementations
     )
 
     Begin {
@@ -390,81 +438,184 @@ function Connect-ISIM {
     }
 
     Process {
-        $isimuid = $cred.GetNetworkCredential().username
-        $isimpwd = $cred.GetNetworkCredential().password
+        $isimuid = $Credential.GetNetworkCredential().username
+        $isimpwd = $Credential.GetNetworkCredential().password
 
-	    ## Initialize SOAP WSDL URLs
-	    $script:isim_url = $isim_url;
-	    $script:isim_wsdl_session=$isim_url+"/itim/services/WSSessionService/WEB-INF/wsdl/WSSessionService.wsdl";
-	    $script:isim_wsdl_person=$isim_url+"/itim/services/WSPersonServiceService/WEB-INF/wsdl/WSPersonService.wsdl";
-	    $script:isim_wsdl_searchdata=$isim_url+"/itim/services/WSSearchDataServiceService/WEB-INF/wsdl/WSSearchDataService.wsdl";
-	    $script:isim_wsdl_account=$isim_url+"/itim/services/WSAccountServiceService/WEB-INF/wsdl/WSAccountService.wsdl";
-	    $script:isim_wsdl_container=$isim_url+"/itim/services/WSOrganizationalContainerServiceService/WEB-INF/wsdl/WSOrganizationalContainerService.wsdl";
-	    $script:isim_wsdl_service=$isim_url+"/itim/services/WSServiceServiceService/WEB-INF/wsdl/WSServiceService.wsdl";
-	    $script:isim_wsdl_password=$isim_url+"/itim/services/WSPasswordServiceService/WEB-INF/wsdl/WSPasswordService.wsdl";
-	    $script:isim_wsdl_request=$isim_url+"/itim/services/WSRequestServiceService/WEB-INF/wsdl/WSRequestService.wsdl";
-        $script:isim_wsdl_role=$isim_url+"/itim/services/WSRoleServiceService/WEB-INF/wsdl/WSRoleService.wsdl";
+        # Init Connection Variable
+        $global:ISIMConnection = New-Object PSObject
+        $global:ISIMConnection | Add-Member AuthMode $auth_mode
+        $global:ISIMConnection | Add-Member Cookies $null
+        $global:ISIMConnection | Add-Member ISIMSession $null
 
+        $proxies = New-Object PSObject
+        $global:ISIMConnection | Add-Member WSProxies $proxies
+
+        ## WebService WSDL Map
+        $script:ws_map = @{
+                    "session" = "/WSSessionService/WEB-INF/wsdl/WSSessionService.wsdl";
+                    "person" = "/WSPersonServiceService/WEB-INF/wsdl/WSPersonService.wsdl";
+                    "searchdata" = "/WSSearchDataServiceService/WEB-INF/wsdl/WSSearchDataService.wsdl";
+                    "account" = "/WSAccountServiceService/WEB-INF/wsdl/WSAccountService.wsdl";
+                    "container" = "/WSOrganizationalContainerServiceService/WEB-INF/wsdl/WSOrganizationalContainerService.wsdl";
+                    "service" = "/WSServiceServiceService/WEB-INF/wsdl/WSServiceService.wsdl";
+                    "password" = "/WSPasswordServiceService/WEB-INF/wsdl/WSPasswordService.wsdl";
+                    "request" = "/WSRequestServiceService/WEB-INF/wsdl/WSRequestService.wsdl";
+                    "role" = "/WSRoleServiceService/WEB-INF/wsdl/WSRoleService.wsdl";
+        }
+
+
+        ## Initialize SOAP WSDL URLs
+        $script:isim_url = $isim_url;
+        foreach ($ws in $script:ws_map.GetEnumerator() ) {
+            $v = $ws.Value
+            $k = $ws.Name
+            $url = $script:isim_url+"/itim/services"+$v
+
+            $varname = "isim_wsdl_"+$k
+            New-Variable -Scope 'Script' -Name $varname -Value $url -Force
+        }
+
+
+
+
+
+		if( $auth_mode -eq "direct" ) {
 
         Try {
 
+                foreach ($ws in $script:ws_map.GetEnumerator() ) {
+                
+                    $k = $ws.Name
+
+                    # Init Proxy
+                    $varname = "isim_wsdl_"+$k
+                    $url = Get-Variable -Scope 'Script' -Name $varname -ValueOnly
+                    Initialize-SOAPProxy -Uri $url -NameSpace $k
+
+                    # Get Proxy
+                    $varname = $k+"_prx"
+                    $proxy = Get-SOAPProxy -Uri $url
+                    $proxy_ns = $proxy.GetType().Namespace
+                    New-Variable -Scope 'Script' -Name $varname -Value $proxy
+
+                    # Get NS
+                    $varname = $k+"_ns"
+                    New-Variable -Scope 'Script' -Name $varname -Value $proxy_ns
+
+                }
         
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_session
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_person
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_searchdata
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_account
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_container
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_service
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_password
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_request
-        Initialize-SOAPProxy -Uri $script:isim_wsdl_role
 
-	    $script:session_prx = Get-SOAPProxy -Uri $isim_wsdl_session -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Session"
-	    $script:person_prx = Get-SOAPProxy -Uri $isim_wsdl_person  -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Person"
-	    $script:search_prx = Get-SOAPProxy -Uri $isim_wsdl_searchdata -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Search"
-	    $script:account_prx = Get-SOAPProxy -Uri $isim_wsdl_account -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Account"
-	    $script:container_prx = Get-SOAPProxy -Uri $isim_wsdl_container -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Container"
-	    $script:service_prx = Get-SOAPProxy -Uri $isim_wsdl_service -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Service"
-	    $script:password_prx = Get-SOAPProxy -Uri $isim_wsdl_password -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Password"
-	    $script:request_prx = Get-SOAPProxy -Uri $isim_wsdl_request -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Request"
-        $script:role_prx = Get-SOAPProxy -Uri $isim_wsdl_role -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Role"
-        
-
-        <#
-	    $script:session_prx = New-WebServiceProxy -Uri $isim_wsdl_session -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Session"
-	    $script:person_prx = New-WebServiceProxy -Uri $isim_wsdl_person  -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Person"
-	    $script:search_prx = New-WebServiceProxy -Uri $isim_wsdl_searchdata -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Search"
-	    $script:account_prx = New-WebServiceProxy -Uri $isim_wsdl_account -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Account"
-	    $script:container_prx = New-WebServiceProxy -Uri $isim_wsdl_container -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Container"
-	    $script:service_prx = New-WebServiceProxy -Uri $isim_wsdl_service -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Service"
-	    $script:password_prx = New-WebServiceProxy -Uri $isim_wsdl_password -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Password"
-	    $script:request_prx = New-WebServiceProxy -Uri $isim_wsdl_request -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Request"
-        $script:role_prx = New-WebServiceProxy -Uri $isim_wsdl_role -ErrorAction stop # -Namespace "WebServiceProxy" -Class "Role"
-        #>
-
-        }
-        Catch {
-            Write-Host -ForegroundColor Red "Could not load WSDL Information"
-        }
+            }
+            Catch {
+                Write-Host -ForegroundColor Red "Could not load WSDL Information"
+            }
 
 
-	    $script:session_ns = $script:session_prx.GetType().Namespace
-	    $script:person_ns = $script:person_prx.GetType().Namespace
-	    $script:search_ns = $script:search_prx.GetType().Namespace
-	    $script:account_ns = $script:account_prx.GetType().Namespace
-	    $script:container_ns = $script:container_prx.GetType().Namespace
-	    $script:service_ns = $script:service_prx.GetType().Namespace
-	    $script:password_ns = $script:password_prx.GetType().Namespace
-	    $script:request_ns = $script:request_prx.GetType().Namespace
-        $script:role_ns = $script:role_prx.GetType().Namespace
+
+			# Login
+			$script:session = $script:session_prx.login($isimuid,$isimpwd)
+            $global:ISIMConnection.ISIMSession = $script:session_prx.login($isimuid,$isimpwd);
+
+			if($script:session -eq $null) {
+				Write-Error "Could not Login to WebService" -ErrorAction Stop
+			}
 
 
-	    # Login
-	    $script:session = $script:session_prx.login($isimuid,$isimpwd)
+            foreach ($ws in $script:ws_map.GetEnumerator() ) {
+	            # Clone Objects to fit Namespaces
+                $k = $ws.Name
+                $var_ns = $k+"_ns"
+                $var_prx_session = $k+"_session"
+                $value_ns = Get-Variable -Scope 'Script' -Name $var_ns -ValueOnly
+                $value = Copy-ISIMObjectNamespace $script:session $value_ns
+                New-Variable -Scope 'Script' -Name $var_prx_session -Value $value
 
-        if($script:session -eq $null) {
-            Write-Error "Could not Login to WebService" -ErrorAction Stop
-        }
+            }
+
+
+
+		} elseif ( $auth_mode -eq "basic" ) {
+			$user = $Credential.GetNetworkCredential().Username
+			$pass = $Credential.GetNetworkCredential().Password
+
+			$pair = "$($user):$($pass)"
+
+			$encodedCreds = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($pair))
+
+			$basicAuthValue = "Basic $encodedCreds"
+
+			$Headers = @{
+				Authorization = $basicAuthValue
+			}
+
+			$web_session = ""
+            $url = $isim_url+"/itim/j_security_check?j_username=dummy&j_password=dummy"
+			Invoke-WebRequest -Uri $url -Method 'POST' -Headers $Headers -SessionVariable "web_session" | Out-Null
+
+            #$web_session.Cookies.GetCookies($url)			
+
+			if( 	$web_session -ne $null -and 
+					$web_session.Cookies -ne $null -and 
+					$web_session.Cookies.GetType().Name -eq "CookieContainer" 
+			) {
+
+                $global:ISIMConnection.Cookies = $web_session.Cookies;
+
+                foreach ($ws in $script:ws_map.GetEnumerator() ) {
+                
+                    $k = $ws.Name      
+
+                    # Init Proxy
+                    $varname = "isim_wsdl_"+$k
+                    $url = Get-Variable -Scope 'Script' -Name $varname -ValueOnly
+                    $file = "$ENV:TEMP\$varname.wsdl"
+                    (Invoke-WebRequest -Uri $url -Headers $Headers).Content | Out-File $file -Encoding utf8
+                    Initialize-SOAPProxy -Uri $file -NameSpace $k -WarningAction SilentlyContinue
+
+                    # Get Proxy
+                    $varname = $k+"_prx"
+                    $proxy = Get-SOAPProxy -Uri $file
+                    $proxy.CookieContainer = $global:ISIMConnection.Cookies
+                    $proxy_ns = $proxy.GetType().Namespace
+                    New-Variable -Scope 'Script' -Name $varname -Value $proxy -Force
+
+                    # Get NS
+                    $varname = $k+"_ns"
+                    New-Variable -Scope 'Script' -Name $varname -Value $proxy_ns -Force
+
+
+                }
+
+				
+
+
+			    # Login
+			    $script:session = $script:session_prx.login($isimuid,$isimpwd)
+                $global:ISIMConnection.ISIMSession = $script:session_prx.login($isimuid,$isimpwd);
+
+
+
+
+                foreach ($ws in $script:ws_map.GetEnumerator() ) {
+	                # Clone Objects to fit Namespaces
+                    $k = $ws.Name
+                    $var_ns = $k+"_ns"
+                    $var_prx_session = $k+"_session"
+                    $value_ns = Get-Variable -Scope 'Script' -Name $var_ns -ValueOnly
+                    $value = Copy-ISIMObjectNamespace $global:ISIMConnection.ISIMSession $value_ns
+                    New-Variable -Scope 'Script' -Name $var_prx_session -Value $value
+
+                    $varname = $k+"_prx"
+                    (Get-Variable -Scope "Script" -Name $varname -ValueOnly).CookieContainer = $global:ISIMConnection.Cookies
+                }
+
+				
+			}
+			
+			
+		} else {
+			Write-Error "Unknown Authentication Method" -ErrorAction Stop
+		}
 
         $script:isim_version = $script:session_prx.getItimVersion()
         $script:isim_fp = $script:session_prx.getItimFixpackLevel()
@@ -485,16 +636,21 @@ function Connect-ISIM {
         Write-Host -NoNewLine "SOAP Version:      "
         Write-Host -ForegroundColor yellow "$script:ws_version"
 
-	    # Clone Objects to fit Namespaces
-	    $script:psession = Copy-ISIMObjectNamespace $script:session $person_ns
-	    $script:asession = Copy-ISIMObjectNamespace $script:session $account_ns
-	    $script:csession = Copy-ISIMObjectNamespace $script:session $container_ns
-	    $script:ssession = Copy-ISIMObjectNamespace $script:session $service_ns
-	    $script:pwsession = Copy-ISIMObjectNamespace $script:session $password_ns
-	    $script:rsession = Copy-ISIMObjectNamespace $script:session $request_ns
-	    $script:rlsession = Copy-ISIMObjectNamespace $script:session $role_ns
 
-        $script:rootContainer = $container_prx.getOrganizations($script:csession) | Where-Object -Property "name" -EQ -Value $ou_name
+
+        $org = $container_prx.getOrganizations($script:container_session) | Where-Object -Property "name" -EQ -Value $ou_name
+
+        if($org -eq $null) {
+            $org_txt = $container_prx.getOrganizations($script:container_session) | Select -ExpandProperty name
+            Write-Error "Organization $ou_name not found - Use one of the following: $org_txt"
+        }
+
+        if($org -ne $null -and $org.Count > 1) {
+            $org_txt = $org | Select -ExpandProperty name
+            Write-Error "Multiple Organizations Found: $org_txt"
+        }
+
+        $script:rootContainer = $org
 
     }
 
@@ -510,20 +666,20 @@ function Disconnect-ISIM {
         Connect to ISIM SOAP WebService. Creates a Client Session.
 
     #>
-    if($script:session -eq $null) {
+    if($global:ISIMConnection.ISIMSession -eq $null) {
         Write-Error "No Active Session. Please Connect first." -ErrorAction Stop
     }
-    $script:session_prx.logout($script:session)
+    $script:session_prx.logout($global:ISIMConnection.ISIMSession)
 
 
 	# Clone Objects to fit Namespaces
-	$script:psession = $null
-	$script:asession = $null
-	$script:csession = $null
-	$script:ssession = $null
-	$script:pwsession = $null
-	$script:rsession = $null
-	$script:rlsession = $null
+	$script:person_session = $null
+	$script:account_session = $null
+	$script:container_session = $null
+	$script:service_session = $null
+	$script:password_session = $null
+	$script:request_session = $null
+	$script:role_session = $null
 
     $script:rootContainer = $null
 
@@ -562,12 +718,13 @@ function Add-ISIMRole {
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
     }
     process {
 
         $personDN = $wsperson.itimDN;
 
-        $req = $person_prx.addRole($script:psession,$personDN,$roleDN,$null,$false,"no");
+        $req = $person_prx.addRole($session,$personDN,$roleDN,$null,$false,"no");
 
         if($wait) {
           Wait-ForRequestCompletion($req.requestId);
@@ -595,11 +752,12 @@ function Remove-ISIMRole {
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:request_ns
     }
     process {
         $personDN = $wsperson.itimDN;
 
-        $req = $person_prx.removeRole($script:psession,$personDN,$roleDN,$null,$false,"no");
+        $req = $person_prx.removeRole($session,$personDN,$roleDN,$null,$false,"no");
 
         Wait-ForRequestCompletion($req.requestId);
     }
@@ -618,16 +776,24 @@ function Get-ISIMRole {
     [CmdletBinding()]
     [OutputType([psobject])]
     param (
-        [Parameter(Mandatory = $true,ValueFromPipelineByPropertyName = $true,Position = 0)]
+        [Parameter(Mandatory = $false,ValueFromPipelineByPropertyName = $true,Position = 0)]
         [string]
-        $RoleName
+        $RoleName,
+        [Parameter(Mandatory=$false)]
+        [string]
+        $ldapFilter
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:role_ns
     }
     process {
-        $filter="(errolename=$($RoleName))"
-        $script:role_prx.searchRoles($script:rlsession,$filter)
+        if($ldapFilter -ne $null) {
+            $filter = $ldapFilter
+        } else {
+            $filter="(errolename=$($RoleName))"
+        }
+        $script:role_prx.searchRoles($session,$filter)
     }
 
 
@@ -655,6 +821,8 @@ function New-ISIMAccount {
     )
     begin {
         Test-ISIMSession
+        $psession = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:password_ns
+        $asession = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:account_ns
     }
     process {
 
@@ -665,12 +833,12 @@ function New-ISIMAccount {
         $serviceDN = Get-ISIMServiceName2DN -name $service
         $personDN = $wsperson.itimDN
 
-        $password = $script:password_prx.generatePasswordForService($script:pwsession,$serviceDN)
+        $password = $script:password_prx.generatePasswordForService($psession,$serviceDN)
         $a_attr.Add("erpassword",$password);
         #$a_attr.Add("eraccountstatus","0");
         $a_attr.Add("owner",$personDN);
 
-        $wsattr = $script:account_prx.getDefaultAccountAttributesByPerson($script:asession,$serviceDN,$personDN)
+        $wsattr = $script:account_prx.getDefaultAccountAttributesByPerson($asession,$serviceDN,$personDN)
 
         if(-not ($a_attr -eq $null)) {
             $wsattr = Convert-Hash2WSAttr -hash $a_attr -namespace $script:account_ns -inAttr $wsattr
@@ -684,8 +852,6 @@ function New-ISIMAccount {
         Wait-ForRequestCompletion($req.requestId);
     }
 }
-
-
 
 function Get-ISIMAccounts {
     <#
@@ -703,17 +869,88 @@ function Get-ISIMAccounts {
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
     }
     process {
 
 
         $itimDN = $wsperson.itimDN;
 
-        return $script:person_prx.getAccountsByOwner($script:psession,$itimDN);
+        return $script:person_prx.getAccountsByOwner($script:person_session,$itimDN);
 
     }
 }
 
+function Remove-ISIMAccount {
+    <#
+
+    .SYNOPSIS
+        Delete Account
+
+    .DESCRIPTION
+        Delete Account
+
+    #>
+    param (
+        [Parameter(Mandatory=$true,Position=1)]
+        [psobject]$account
+    )
+    begin {
+        Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:account_ns
+    }
+    process {
+
+        
+        $req = $script:account_prx.deprovisionAccount($session, $account.itimDN, $null, $false, "Remove-ISIMAccount")
+        if( -not ($req -eq $null) ) {
+            Wait-ForRequestCompletion($req.requestId);
+        }
+
+
+    }
+}
+
+function Add-ISIMAccountToPerson {
+    <#
+
+    .SYNOPSIS
+        Assign Account to Person
+
+    .DESCRIPTION
+        Assign Account to Person
+
+    #>
+    param (
+        [Parameter(Mandatory=$true,Position=1)]
+        [psobject]$account,
+        [Parameter(Mandatory=$true,Position=2)]
+        [psobject]$person
+    )
+    begin {
+        Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:account_ns
+    }
+    process {
+
+        # Copy Account Object Attributes to correct Namespace
+        $accountNew = Copy-ISIMObjectNamespace -obj $account -targetNS $script:account_ns;
+
+        # orhpan Account
+        $script:account_prx.orphanSingleAccount($session,$accountNew.itimDN);
+        sleep -Milliseconds 500
+        # search new orhpaned itimDN
+        $wssearcharg = New-Object ($script:account_ns+".WSSearchArguments")
+        $wssearcharg.profile = $accountNew.profileName;
+        $wssearcharg.filter = "(eruid=$($accountNew.name))";
+
+        # do Search Task
+        $account_search = $script:account_prx.searchAccounts($session, $wssearcharg);
+        
+        # Adopt orphaned Account to new Person
+        $script:account_prx.adoptSingleAccount($session,$account_search.itimDN,$person.itimDN);
+    }
+}
 
 
 
@@ -736,6 +973,9 @@ function Set-ISIMPasswords {
     )
     begin {
         Test-ISIMSession
+        $psession = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
+        $pwsession = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:password_ns
+        $rsession = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:request_ns
     }
     process {
 
@@ -745,7 +985,7 @@ function Set-ISIMPasswords {
 
         $personDN = $wsperson.itimDN
 
-        $accounts = $script:person_prx.getAccountsByOwner($script:psession,$personDN)
+        $accounts = $script:person_prx.getAccountsByOwner($psession,$personDN)
         $pwd_accounts = @()
 
         foreach ($a in $accounts) {
@@ -799,19 +1039,25 @@ function Get-ISIMPerson {
 
         [string]
         [Parameter(ParameterSetName='LDAPFilter', Position=0)]
-        $LDAPFilter
+        $LDAPFilter,
+        [string]
+        [Parameter(ParameterSetName='DN', Position=0)]
+        $DN
     )
     begin {
         Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
     }
     process {
 
         if( $LDAPFilter -is [string] -and $LDAPFilter -like "(*)" ) {
-            $person = $script:person_prx.searchPersonsFromRoot($script:psession,$LDAPFilter,$null)
+            $person = $script:person_prx.searchPersonsFromRoot($session,$LDAPFilter,$null)
+        } elseif( $DN -is [string] -and $DN -like "erglobalid=*" ) {
+            $person = $script:person_prx.lookupPerson($session,$DN)
         } else {
             $p_dn = Get-ISIMPersonUID2DN -uid $Uid
             if( -not ($p_dn -eq $null) ) {
-                $person = $script:person_prx.lookupPerson($script:psession,$p_dn)
+                $person = $script:person_prx.lookupPerson($session,$p_dn)
             }
         }
 
@@ -842,22 +1088,68 @@ function Update-ISIMPerson {
         [Parameter(Mandatory=$true,Position=2)]
         [hashtable]$attr
     )
+    begin {
+        Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
+    }
+    process {
+        try {
+            $wsattr = Convert-Hash2WSAttr -hash $attr -namespace $script:person_ns
+            $req = $script:person_prx.modifyPerson($session,$wsperson.itimDN,$wsattr,$null,$false,"none")
 
-    try {
-        $wsattr = Convert-Hash2WSAttr -hash $attr -namespace $script:person_ns
-        $req = $script:person_prx.modifyPerson($script:psession,$wsperson.itimDN,$wsattr,$null,$false,"none")
+            Wait-ForRequestCompletion($req.requestId);
 
-        Wait-ForRequestCompletion($req.requestId);
-
-    } catch {
-        Write-Host -NoNewline "Update User Error '$($wsperson.name)': "
-        Write-Host -ForegroundColor red $_.Exception.InnerException.Message
+        } catch {
+            Write-Host -NoNewline "Update User Error '$($wsperson.name)': "
+            Write-Host -ForegroundColor red $_.Exception.InnerException.Message
+        }
     }
 
 
 
 
 }
+
+
+
+function Get-ISIMService {
+    <#
+
+    .SYNOPSIS
+        Get ISIM Services
+
+    .DESCRIPTION
+        Get ISIM Services
+
+    #>
+    [CmdletBinding()]
+    [OutputType([psobject])]
+
+    [CmdletBinding(DefaultParameterSetName='ServiceName')]
+    param
+    (
+        [string]
+        [Parameter(ParameterSetName='ServiceName', Position=0)]
+        $Uid
+    )
+    begin {
+        Test-ISIMSession
+        $session = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:service_ns
+    }
+    process {
+
+        $value_ns = $script:service_prx.GetType().Namespace
+        $container = Copy-ISIMObjectNamespace $script:rootContainer $value_ns
+        $services = $script:service_prx.searchServices($session,$container,"")
+
+        return $services;
+
+
+    }
+
+
+}
+
 
 
 <##
@@ -887,9 +1179,14 @@ function New-ISIMPerson {
         [Parameter(Mandatory=$false,Position=4)]
         [string]$CProfile="AdminDomain"
     )
+    begin {
+        Test-ISIMSession
+        $csession = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:container_ns
+        $psession = Copy-ISIMObjectNamespace $ISIMConnection.ISIMSession $script:person_ns
+    }
     process {
 
-        $ou_search = $script:container_prx.searchContainerByName($script:csession,$script:rootContainer,$CProfile,$Container)
+        $ou_search = $script:container_prx.searchContainerByName($csession,$global:rootContainer,$CProfile,$Container)
         if($ou_search.Length -eq 1) {
             $ou = Copy-ISIMObjectNamespace -obj $ou_search[0] -targetNS $script:person_ns
         }
@@ -903,79 +1200,16 @@ function New-ISIMPerson {
 
         $wsperson.attributes = $wsattr;
 
+        
 
 
-        $req = $script:person_prx.createPerson($script:psession,$ou,$wsperson,$null,$false,"none")
+        $req = $script:person_prx.createPerson($psession,$ou,$wsperson,$null,$false,"none")
 
         if( -not ($req -eq $null) ) {
             Wait-ForRequestCompletion($req.requestId);
         }
 
 
-    }
-}
-
-function Remove-ISIMAccount {
-    <#
-
-    .SYNOPSIS
-        Delete Account
-
-    .DESCRIPTION
-        Delete Account
-
-    #>
-    param (
-        [Parameter(Mandatory=$true,Position=1)]
-        [psobject]$account
-    )
-    process {
-
-        
-        $req = $script:account_prx.deprovisionAccount($script:asession, $account.itimDN, $null, $false, "Remove-ISIMAccount")
-        if( -not ($req -eq $null) ) {
-            Wait-ForRequestCompletion($req.requestId);
-        }
-
-
-    }
-}
-
-
-function Add-ISIMAccountToPerson {
-    <#
-
-    .SYNOPSIS
-        Assign Account to Person
-
-    .DESCRIPTION
-        Assign Account to Person
-
-    #>
-    param (
-        [Parameter(Mandatory=$true,Position=1)]
-        [psobject]$account,
-        [Parameter(Mandatory=$true,Position=2)]
-        [psobject]$person
-    )
-    process {
-
-        # Copy Account Object Attributes to correct Namespace
-        $accountNew = Copy-ISIMObjectNamespace -obj $account -targetNS $script:account_ns;
-
-        # orhpan Account
-        $script:account_prx.orphanSingleAccount($script:asession,$accountNew.itimDN);
-        sleep -Milliseconds 500
-        # search new orhpaned itimDN
-        $wssearcharg = New-Object ($script:account_ns+".WSSearchArguments")
-        $wssearcharg.profile = $accountNew.profileName;
-        $wssearcharg.filter = "(eruid=$($accountNew.name))";
-
-        # do Search Task
-        $account_search = $script:account_prx.searchAccounts($script:asession, $wssearcharg);
-        
-        # Adopt orphaned Account to new Person
-        $script:account_prx.adoptSingleAccount($script:asession,$account_search.itimDN,$person.itimDN);
     }
 }
 
@@ -1002,3 +1236,5 @@ Export-ModuleMember -Function Get-ISIMPersonsByFilter
 Export-ModuleMember -Function Add-ISIMAccountToPerson
 Export-ModuleMember -Function Remove-ISIMAccount
 Export-ModuleMember -Function Get-ISIMAccounts
+Export-ModuleMember -Function Get-ISIMService
+Export-ModuleMember -Function Get-ISIMPersonRolesRole
