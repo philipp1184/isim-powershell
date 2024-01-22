@@ -645,7 +645,7 @@ function Connect-ISIM {
             Write-Error "Organization $ou_name not found - Use one of the following: $org_txt"
         }
 
-        if($org -ne $null -and $org.Count > 1) {
+        if($org -ne $null -and $org.Count -gt 1) {
             $org_txt = $org | Select -ExpandProperty name
             Write-Error "Multiple Organizations Found: $org_txt"
         }
